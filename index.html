@@ -1,10 +1,18 @@
 <!DOCTYPE html>
 
+
+
+
+/* GlitchAR v 1.6 - forevermidi.com 2025 */
+
+
+
+
 <html>
 
 <head>
 
-    <title>forevermidi-augmented-glitch</title>
+    <title>GlitchAR</title>
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
@@ -12,17 +20,399 @@
 
     <script src="https://unpkg.com/aframe-post-processing-component@1.1.2/dist/aframe-post-processing-component.min.js"></script>
 
+    <style>
+
+        /* Ensure the body takes up the full screen and has no margins */
+
+        body { margin: 0; overflow: hidden; }
+
+
+
+
+        /* Container for all controls at the bottom */
+
+        #controlsContainer {
+
+            position: fixed; /* Keep controls in place */
+
+            bottom: 20px;
+
+            left: 50%;
+
+            transform: translateX(-50%); /* Center horizontally */
+
+            z-index: 10; /* Ensure controls are on top of the AR scene */
+
+
+
+
+            /* Basic styling for visibility */
+
+            background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white background */
+
+            padding: 10px;
+
+            border-radius: 5px;
+
+
+
+
+            /* Layout for controls */
+
+            display: flex; /* Use flexbox to arrange items in a row */
+
+            align-items: center; /* Vertically align items in the center */
+
+            gap: 10px; /* Add space between control items */
+
+            flex-wrap: wrap; /* Allow items to wrap to the next line on small screens */
+
+            justify-content: center; /* Center items if they wrap */
+
+        }
+
+
+
+
+        /* Styling for all button types within the container */
+
+        #snapButton, #randomizeIntensityButton, #randomizeEffectsButton {
+
+            /* Dimensions */
+
+            width: 60px; /* Make buttons a consistent size */
+
+            height: 60px;
+
+
+
+
+            /* Appearance */
+
+            background-color: rgba(255, 255, 255, 0.0); /* Transparent background */
+
+            border: 1px solid black; /* Subtle black border */
+
+            color: black; /* Text color */
+
+            font-size: 14px;
+
+            text-align: center;
+
+            line-height: 60px; /* Vertically center text */
+
+            cursor: pointer; /* Indicate it's clickable */
+
+            padding: 0; /* Remove default padding */
+
+            box-sizing: border-box; /* Include border and padding in element size */
+
+            flex-shrink: 0; /* Prevent buttons from shrinking */
+
+        }
+
+
+
+
+        /* Styling for labels */
+
+        #controlsContainer label {
+
+             color: black; /* Label text color */
+
+             font-size: 14px;
+
+        }
+
+
+
+
+        /* Styling for the intensity slider */
+
+        #glitchIntensity {
+
+            width: 100px; /* Set a width for the slider */
+
+            flex-shrink: 0; /* Prevent slider from shrinking */
+
+        }
+
+    </style>
+
 </head>
 
-<body style="margin: 0px; overflow: hidden;">
+<body>
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;"
 
-             postprocessing="shader: glitch; rgbshift; pixelate;">
+             postprocessing="shader: glitch; rgbshift; pixelate;"> <a-camera-static preset="hiro"></a-camera-static>
 
-        <a-camera-static preset="hiro"></a-camera-static>
+
+
 
     </a-scene>
+
+
+
+
+    <div id="controlsContainer">
+
+        <button id="snapButton">snap</button>
+
+
+
+
+        <label for="glitchIntensity">Glitch:</label>
+
+        <input type="range" id="glitchIntensity" min="0" max="1" step="0.01" value="0.5">
+
+
+
+
+        <button id="randomizeIntensityButton">Randomize Intensity</button>
+
+
+
+
+        <button id="randomizeEffectsButton">Randomize Effects</button>
+
+    </div>
+
+
+
+
+    <script>
+
+        // Wait for the whole page to load before running the script
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // Get references to all control elements and the scene
+
+            const snapButton = document.getElementById('snapButton');
+
+            const scene = document.querySelector('a-scene');
+
+            const glitchIntensitySlider = document.getElementById('glitchIntensity');
+
+            const randomizeIntensityButton = document.getElementById('randomizeIntensityButton');
+
+            const randomizeEffectsButton = document.getElementById('randomizeEffectsButton');
+
+
+
+
+            // Function to update the glitch effect intensity based on the slider value
+
+            function updateGlitchIntensity(value) {
+
+                // Get the postprocessing component instance
+
+                const postProcessingComponent = scene.components.postprocessing;
+
+                if (postProcessingComponent && postProcessingComponent.composer) {
+
+                     // Loop through all active passes and update the 'byp' uniform if it exists
+
+                     // The 'byp' uniform is commonly used for intensity or blending in many shaders
+
+                     // 1 - value is often used because 0 might mean full effect and 1 no effect
+
+                    postProcessingComponent.composer.passes.forEach(pass => {
+
+                        if (pass.uniforms && pass.uniforms["byp"] !== undefined) {
+
+                             pass.uniforms["byp"].value = 1 - parseFloat(value); // Use parseFloat for slider value
+
+                        }
+
+                    });
+
+                }
+
+            }
+
+
+
+
+            // Ensure the scene is loaded before trying to update effects
+
+            scene.addEventListener('loaded', function() {
+
+                 // Set initial intensity from the slider value once the scene is ready
+
+                 updateGlitchIntensity(glitchIntensitySlider.value);
+
+            });
+
+
+
+
+
+
+
+            // Event listener for the Snap button
+
+            snapButton.addEventListener('click', function () {
+
+                if (scene && scene.hasLoaded) {
+
+                    try {
+
+                        // Get the HTML canvas element that A-Frame is rendering to
+
+                        const canvas = scene.renderer.domElement;
+
+
+
+
+                        // Capture the content of the canvas as a PNG image data URL
+
+                        const dataURL = canvas.toDataURL('image/png');
+
+
+
+
+                        // Create a temporary invisible link element to trigger download
+
+                        const link = document.createElement('a');
+
+                        link.href = dataURL;
+
+                        link.download = 'ar-glitch-snap.png'; // Filename for the downloaded image
+
+
+
+
+                        // Append the link to the body, trigger click, and remove
+
+                        document.body.appendChild(link);
+
+                        link.click();
+
+                        document.body.removeChild(link);
+
+
+
+
+                    } catch (error) {
+
+                        console.error("Error capturing screenshot:", error);
+
+                        alert("Could not capture screenshot. Please make sure your browser supports this feature and camera permissions are granted.");
+
+                    }
+
+                } else {
+
+                    console.log("A-Frame scene is not fully loaded or initialized.");
+
+                }
+
+            });
+
+
+
+
+            // Event listener for the intensity slider
+
+            glitchIntensitySlider.addEventListener('input', function () {
+
+                updateGlitchIntensity(this.value); // Update effect whenever slider moves
+
+            });
+
+
+
+
+            // Event listener for the first randomization button (Intensity)
+
+            randomizeIntensityButton.addEventListener('click', function () {
+
+                const randomValue = Math.random(); // Generate random value between 0.0 and 1.0
+
+                glitchIntensitySlider.value = randomValue; // Set slider position
+
+                updateGlitchIntensity(randomValue); // Apply the effect
+
+            });
+
+
+
+
+            // Event listener for the NEW randomization button (Effects Combination)
+
+            randomizeEffectsButton.addEventListener('click', function () {
+
+                // Define the list of possible post-processing effects supported by the component
+
+                const possibleEffects = ['glitch', 'rgbshift', 'pixelate', 'film', 'bloom', 'luminosity']; // Add/remove effects as desired
+
+
+
+
+                let selectedEffects = []; // Array to store the effects for this random combination
+
+
+
+
+                // Randomly decide which effects to include
+
+                possibleEffects.forEach(effect => {
+
+                    // Adjust the chance (e.g., 0.4 = 40% chance) to get more or fewer effects
+
+                    if (Math.random() > 0.5) {
+
+                        selectedEffects.push(effect);
+
+                    }
+
+                });
+
+
+
+
+                // Ensure at least one effect is selected if the random selection resulted in none
+
+                if (selectedEffects.length === 0 && possibleEffects.length > 0) {
+
+                     selectedEffects.push(possibleEffects[Math.floor(Math.random() * possibleEffects.length)]);
+
+                }
+
+
+
+
+                // Construct the new string for the postprocessing attribute
+
+                // The format is "shader: effect1; effect2; ..."
+
+                // Ensure the first effect is preceded by "shader: "
+
+                const newPostprocessingString = "shader: " + selectedEffects.join('; ');
+
+
+
+
+                // Update the 'postprocessing' attribute on the A-Frame scene element
+
+                scene.setAttribute('postprocessing', newPostprocessingString);
+
+
+
+
+                 // Re-apply the current intensity slider value after changing effects
+
+                 // This helps maintain the desired intensity level across different effect combinations
+
+                updateGlitchIntensity(glitchIntensitySlider.value);
+
+            });
+
+        });
+
+    </script>
 
 </body>
 
